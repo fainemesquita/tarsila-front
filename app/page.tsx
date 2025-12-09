@@ -40,7 +40,7 @@ export default function Homepage() {
   return (
     <div className="min-h-screen flex flex-col bg-marfim">
       <main className="flex-1">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
           {/* Hero Section */}
           <div className="text-center mb-20">
             <div className="mb-12">
@@ -49,22 +49,20 @@ export default function Homepage() {
                 alt="Logo Tarsila" 
                 width={120} 
                 height={120}
-                className="mx-auto mb-8"
+                className="mx-auto mb-8 opacity-0 animate-fadeIn [animation-delay:1s]"
                 priority
               />
             </div>
             
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-marrom-carvao tracking-tight">
-              A elaboração de projetos <br className="hidden sm:block" />
+            <h1 className="text-5xl sm:text-6xl md:text-7xl text-marrom-carvao tracking-tight">
+              Seu projeto cultural<br className="hidden sm:block" />
               <span className="text-laranja-queimado">
                 em um novo patamar
               </span>
             </h1>
             
-            <p className="mt-8 max-w-2xl mx-auto text-lg sm:text-xl text-verde-oliva-escuro leading-relaxed">
-              Acreditamos na cocriação como a melhor forma de promover a inclusão de 
-              empreendedores culturais. Cada um se beneficia do todo, ao mesmo tempo 
-              em que oferece a sua contribuição.
+            <p className="mt-8 max-w-4xl mx-auto text-lg sm:text-xl text-verde-oliva-escuro leading-relaxed">
+              Transforme suas ideias em projetos culturais profissionais com o poder da inteligência artificial
             </p>
             
             <div className="mt-12">
