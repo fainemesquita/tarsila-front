@@ -24,6 +24,7 @@ export default function ChatInput() {
   const [loading, setLoading] = useState<boolean>(false);
   const [userNewMessage, setUserNewMessage] = useState<string>("");
   const [filesToSend, setFilesToSend] = useState<Array<string>>([]);
+  const [selectedFiles, setSelectedFiles] = useState<Array<File>>([]);
 
   function newMessage(message: Message): void {
     if (!!message && !!message.message.trim().length) {
@@ -35,35 +36,60 @@ export default function ChatInput() {
     }
   }
 
-  function handleSubmit(newMsg: string): void {
+  async function handleSubmit(newMsg: string): Promise<void> {
     const chatId = currentChatId ? currentChatId : null
     const user = currentUser?.email ? currentUser.email : ""
-    newMessage({
-      message: newMsg,
-      msg_type: MSG_TYPES.USER_TEXT,
-      timestamp: String(new Date()),
-    });
+
+    if (!newMsg.trim().length && !selectedFiles.length) {
+      const errorMsg = "Mensagem não pode ser vazia";
+      alert(errorMsg);
+      console.error(errorMsg);
+      return;
+    }
+
+    if (!!newMsg.trim().length) {
+      newMessage({
+        message: newMsg,
+        msg_type: MSG_TYPES.USER_TEXT,
+        timestamp: String(new Date()),
+      });
+    }
+
     setLoading(true);
-    sendMessage(user, chatId, newMsg, filesToSend).then(
-      (data: Conversation | RequestError) => {
-        setDialogs((data as Conversation).history);
-        addDraft((data as Conversation).draft);
-        setUserNewMessage("");
-        setFilesToSend([]);
-        setLoading(false);
+
+    try {
+      let uploadedIds: Array<string> = [];
+      if (selectedFiles.length) {
+        const res = await addFile(user, chatId, selectedFiles);
+        if ((res as RequestError).errorMsg) throw (res as RequestError).errorMsg;
+        uploadedIds = res as Array<string>;
       }
-    );
+
+      const data: Conversation | RequestError = await sendMessage(user, chatId, newMsg, uploadedIds);
+
+      setDialogs((data as Conversation).history);
+      addDraft((data as Conversation).draft);
+      setUserNewMessage("");
+      setFilesToSend([]);
+      setSelectedFiles([]);
+      if (uploadFileLink.current) uploadFileLink.current.value = "";
+    } catch (error) {
+      console.error(error);
+      alert(error instanceof Error ? error.message : String(error));
+    } finally {
+      setLoading(false);
+    }
   }
 
   function handleFormSubmit(event: FormEvent, newMsg: string): void {
     event.preventDefault();
-    handleSubmit(`${newMsg}`);
+    void handleSubmit(`${newMsg}`);
   }
 
   function handleKeyDown(event: KeyboardEvent, newMsg: string): void {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      handleSubmit(newMsg);
+      void handleSubmit(newMsg);
     }
   }
 
@@ -72,22 +98,14 @@ export default function ChatInput() {
   }
 
   function saveFiles(files: Array<File>): void {
-    const chatId = currentChatId ? currentChatId : null
-    const user = currentUser?.email ? currentUser.email : ""
     if (files.length) {
-      setLoading(true);
-      addFile(user, chatId, files)
-        .then((filesIds) => {
-          if ((filesIds as Array<string>).length) {
-            setFilesToSend((prev) => [
-              ...prev.concat(filesIds as Array<string>),
-            ]);
-          }
-        })
-        .finally(() => {
-          setLoading(false);
-        });
+      setSelectedFiles((prev) => prev.concat(files));
+      if (uploadFileLink.current) uploadFileLink.current.value = "";
     }
+  }
+
+  function removeSelectedFile(indexToRemove: number): void {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== indexToRemove));
   }
 
   return (
@@ -119,6 +137,7 @@ export default function ChatInput() {
             className="w-full"
             disabled={loading}
             onClick={() => uploadFileLink.current?.click()}
+            type="button"
           >
             Arquivo
           </Button>
@@ -133,6 +152,27 @@ export default function ChatInput() {
           />
         </div>
       </form>
+
+      <ul className="flex list-none flex-wrap -mx-2 mt-2">
+        {selectedFiles.map((file: File, index: number) => (
+          <li 
+            className="relative rounded-lg bg-laranja-queimado text-marfim p-4 pr-14 pl-4 m-2 break-all w-[calc(33.33%-16px)] min-w-[280px]" 
+            key={`${file.name}-${index}`}
+          >
+            {file.name}
+            {!loading && (
+              <button
+                className="absolute right-2 top-2 px-4 text-marfim bg-verde-oliva-claro border-none rounded-md py-2 cursor-pointer font-medium transition-all duration-200 hover:bg-verde-oliva-escuro"
+                onClick={() => removeSelectedFile(index)}
+                type="button"
+              >
+                X
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+
       <ul className="flex list-none flex-wrap -mx-2 mt-2">
         {filesToSend.map((file: string, index: number) => (
           <li 
@@ -144,6 +184,7 @@ export default function ChatInput() {
               <button
                 className="absolute right-2 top-2 px-4 text-marfim bg-verde-oliva-claro border-none rounded-md py-2 cursor-pointer font-medium transition-all duration-200 hover:bg-verde-oliva-escuro"
                 onClick={() => removeFromSendList(file)}
+                type="button"
               >
                 X
               </button>

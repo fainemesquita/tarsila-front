@@ -1,4 +1,5 @@
 const url = "https://tarsila.audiofusion.com.br";
+const uploadUrl = "http://154.53.63.54:8250";
 const headers = { "Content-Type": "application/json" };
 
 export enum MSG_TYPES {
@@ -130,23 +131,30 @@ export async function addFile(
   files: Array<File>
 ): Promise<Array<string> | RequestError> {
   const path = "/v1/upload";
-  const chatID = JSON.stringify(chat_id)
+
   const body = new FormData();
-  body.append("user", user);
-  body.append("chat_id", chatID);
+  body.append("user_email", user);
+
+  const chatIdNumber = chat_id ? Number(chat_id) : null;
+  if (chatIdNumber === null || Number.isNaN(chatIdNumber)) {
+    throw new Error("Invalid chat_id (expected a number).");
+  }
+  body.append("chat_id", String(chatIdNumber));
+
   files.forEach((file) => {
     body.append("docs", file);
   });
 
   try {
-    const resp = await fetch(url + path, {
+    const resp = await fetch(uploadUrl + path, {
       method: "POST",
       headers: {},
       body,
     });
 
     if (!resp.ok) {
-      throw new Error(`HTTP error! status: ${resp.status}`);
+      const text = await resp.text().catch(() => "");
+      throw new Error(`Upload failed (${resp.status}): ${text || resp.statusText}`);
     }
 
     const data = (await resp.json()) as Array<string>;
